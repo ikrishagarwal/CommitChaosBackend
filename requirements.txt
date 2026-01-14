@@ -4,4 +4,6 @@ uvicorn
 scikit-learn
 numpy
 firebase-admin>=6.5.0
+=======
 python-dotenv>=1.0.0
+>>>>>>> 7fd5ab195456a8405c5de8a4aa13912554c6f311

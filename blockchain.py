@@ -70,11 +70,12 @@ def register_tourist(firebase_uid: str, expiry: int):
   signed_tx = w3.eth.account.sign_transaction(tx, SYSTEM_PRIVATE_KEY)
   tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
 
-  w3.eth.wait_for_transaction_receipt(tx_hash, timeout=200)
+#   w3.eth.wait_for_transaction_receipt(tx_hash)
 
   return {
       "kyc_hash": kyc_hash.hex(),
       "expires_at": expiry_timestamp,
       "contract": CONTRACT_ADDRESS,
-      "chain_id": 11155111
+      "chain_id": 11155111,
+      "tx_hash": tx_hash.hex()
   }

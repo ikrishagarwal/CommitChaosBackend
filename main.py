@@ -26,17 +26,18 @@ except Exception:
 
 app = FastAPI()
 
+
 class GPSPoint(BaseModel):
-    lat: float
-    lon: float
-    timestamp: datetime
+  lat: float
+  lon: float
+  timestamp: datetime
+
 
 class MovementRequest(BaseModel):
-    prev_point: GPSPoint
-    curr_point: GPSPoint
-    zone_risk: int
-    deviation: int
-
+  prev_point: GPSPoint
+  curr_point: GPSPoint
+  zone_risk: int
+  deviation: int
 
 
 async def _maybe_await(value: Any) -> Any:
@@ -168,29 +169,31 @@ async def get_ids(request: Request):
 
   return {"success": True, "ids": ids}
 
+
 @app.post("/analyze-movement")
-def analyze_movement(data: MovementRequest):
+def analyze_movement(data: MovementRequest, request: Request):
+  verify_firebase_auth_header(request.headers.get("Authorization"))
 
-    features = extract_features(
-        data.prev_point.dict(),
-        data.curr_point.dict(),
-        data.zone_risk,
-        data.deviation
-    )
+  features = extract_features(
+      data.prev_point.dict(),
+      data.curr_point.dict(),
+      data.zone_risk,
+      data.deviation
+  )
 
-    anomaly = detect_anomaly(features)
-    alert = apply_rules(anomaly, features)
+  anomaly = detect_anomaly(features)
+  alert = apply_rules(anomaly, features)
 
-    if alert:
-        return {
-            "status": "ALERT",
-            "data": alert
-        }
-
+  if alert:
     return {
-        "status": "NORMAL",
-        "data": None
+        "status": "ALERT",
+        "data": alert
     }
+
+  return {
+      "status": "NORMAL",
+      "data": None
+  }
 
 
 @app.post("/send-sms")

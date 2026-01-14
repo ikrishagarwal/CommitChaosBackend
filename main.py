@@ -21,6 +21,10 @@ class CreateUserBody(BaseModel):
   phone: str = Field(min_length=3, max_length=32)
 
 
+class GenerateIDBody(BaseModel):
+  expiry: int
+
+
 @app.get("/")
 async def read_root():
   return {"Hello": "World"}
@@ -72,7 +76,7 @@ async def create_user(body: CreateUserBody, request: Request):
 
 
 @app.post("/generate-id")
-async def generate_id(request: Request):
+async def generate_id(body: GenerateIDBody, request: Request):
   user = verify_firebase_auth_header(request.headers.get("Authorization"))
   if not user:
     return {"error": "Unauthorized"}
@@ -86,13 +90,28 @@ async def generate_id(request: Request):
     return {"error": "KYC not completed"}
 
   # Hit the smart contract and generate a temp ID
-
-  # hash_id = "temp_id_hash_12345"
-
+  hash_id = "temp_id_hash_12345"
   # Assuming i got the id hash here
 
+  ids = user_doc_data.get("ids") or {}
+
+  ids[hash_id] = {
+    "expiry": body.expiry
+  }
+
+  await _maybe_await(
+    db.collection("users").document(user["uid"]).set(
+      {
+        "ids": ids
+      },
+      merge=True,
+    )
+  )
+
   return {
-    "message": "In development"
+    "hash_id": hash_id,
+    "expiry": body.expiry,
+    "message": "ID generated successfully",
   }
 
 

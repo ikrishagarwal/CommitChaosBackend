@@ -7,6 +7,8 @@ from fastapi import FastAPI, Request
 import inspect
 from typing import Any
 
+from sms import send_sms
+
 try:
   from dotenv import load_dotenv
 
@@ -26,6 +28,11 @@ async def _maybe_await(value: Any) -> Any:
 
 class GenerateIDBody(BaseModel):
   expiry: int
+
+
+class SendSmsBody(BaseModel):
+  to: str = Field(min_length=4, description="E.164 format, e.g. +918603128570")
+  message: str = Field(min_length=1, max_length=1000)
 
 
 @app.get("/")
@@ -143,3 +150,35 @@ async def get_ids(request: Request):
     ids = {}
 
   return {"success": True, "ids": ids}
+
+
+@app.post("/send-sms")
+async def send_sms_endpoint(body: SendSmsBody, request: Request):
+  user = verify_firebase_auth_header(request.headers.get("Authorization"))
+  if not user:
+    return {"error": "Unauthorized"}
+
+  to = body.to.strip()
+  if not to.startswith("+"):
+    return {"error": "'to' must be E.164 format starting with '+'"}
+
+  try:
+    resp = send_sms(to=to, text=body.message)
+  except Exception as exc:
+    # Avoid leaking credentials/config; return a simple error.
+    return {"success": False, "error": str(exc)}
+
+  messages = getattr(resp, "messages", None)
+  if not messages:
+    return {"success": False, "error": "No messages returned from Vonage", "raw": str(resp)}
+
+  m0 = messages[0]
+  status = getattr(m0, "status", None)
+  message_id = getattr(m0, "message_id", None)
+
+  return {
+    "success": status == "0",
+    "status": status,
+    "message_id": message_id,
+    "to": getattr(m0, "to", None) or to,
+  }

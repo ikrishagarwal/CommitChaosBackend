@@ -87,6 +87,11 @@ async def generate_id(body: GenerateIDBody, request: Request):
   if not kyc_status:
     return {"error": "KYC not completed"}
 
+  if not user_doc_data.get("blockchain_account"):
+    return {"error": "User does not exist. Please create user first."}
+
+  wallet_address = user_doc_data["blockchain_account"]["address"]
+
   # Hit the smart contract and generate a temp ID
   hash_id = "temp_id_hash_12345"
   # Assuming i got the id hash here

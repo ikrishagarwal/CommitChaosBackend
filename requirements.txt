@@ -4,3 +4,4 @@ uvicorn
 scikit-learn
 numpy
 firebase-admin>=6.5.0
+0x2b91b18d638169a58f8deb9922a3e423f44b408371f7d2229483dc8d1f8362bd

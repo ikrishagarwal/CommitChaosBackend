@@ -6,6 +6,11 @@ from pydantic import AnyUrl, BaseModel, Field
 from fastapi import FastAPI, Request
 import inspect
 from typing import Any
+from datetime import datetime, timedelta
+
+from ai.feature_eng import extract_features
+from ai.anomly_detector import detect_anomaly
+from ai.rule_engine import apply_rules
 
 try:
   from dotenv import load_dotenv
@@ -18,6 +23,18 @@ except Exception:
 
 
 app = FastAPI()
+
+class GPSPoint(BaseModel):
+    lat: float
+    lon: float
+    timestamp: datetime
+
+class MovementRequest(BaseModel):
+    prev_point: GPSPoint
+    curr_point: GPSPoint
+    zone_risk: int
+    deviation: int
+
 
 
 async def _maybe_await(value: Any) -> Any:
@@ -143,3 +160,27 @@ async def get_ids(request: Request):
     ids = {}
 
   return {"success": True, "ids": ids}
+
+@app.post("/analyze-movement")
+def analyze_movement(data: MovementRequest):
+
+    features = extract_features(
+        data.prev_point.dict(),
+        data.curr_point.dict(),
+        data.zone_risk,
+        data.deviation
+    )
+
+    anomaly = detect_anomaly(features)
+    alert = apply_rules(anomaly, features)
+
+    if alert:
+        return {
+            "status": "ALERT",
+            "data": alert
+        }
+
+    return {
+        "status": "NORMAL",
+        "data": None
+    }

@@ -2,3 +2,5 @@
 
 serviceAccount.json
 **/__pycache__/
+
+.env

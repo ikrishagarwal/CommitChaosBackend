@@ -10,7 +10,7 @@ if not w3.is_connected():
 
 print("✅ Connected to Sepolia | Chain ID:", w3.eth.chain_id)
 CONTRACT_ADDRESS = Web3.to_checksum_address(
-    "0xC246A78f4Dacf9F00d317D4083C345a0554AA1dE"
+    "0x5Af1a5DF03fd6Dd1d3D8a54253bf4782c738dDC7"
 )
 
 ABI = [

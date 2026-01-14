@@ -1,24 +1,26 @@
+from db.firebase import db as firestore_db
+from db.helpers import verify_firebase_auth_header
+from eth_account import Account
+from pydantic import AnyUrl, BaseModel, Field
+from fastapi import FastAPI, Request
 import inspect
 from typing import Any
 
-from fastapi import FastAPI, Request
-from pydantic import AnyUrl, BaseModel, Field
-from eth_account import Account
+try:
+  from dotenv import load_dotenv
 
-import db.firebase  # Ensures Firebase Admin SDK is initialized
-from db.helpers import verify_firebase_auth_header
-from db.firebase import db
+  load_dotenv()
+except Exception:
+  pass
+
+# line break
+
 
 app = FastAPI()
 
 
 async def _maybe_await(value: Any) -> Any:
   return await value if inspect.isawaitable(value) else value
-
-
-class CreateUserBody(BaseModel):
-  profile_photo: AnyUrl
-  phone: str = Field(min_length=3, max_length=32)
 
 
 class GenerateIDBody(BaseModel):
@@ -39,40 +41,36 @@ async def kyc_verification(request: Request):
   # print(user)
 
   uid = user["uid"]
-  await _maybe_await(db.collection("users").document(uid).set({"kyc": True}, merge=True))
+  await _maybe_await(firestore_db.collection("users").document(uid).set({"kyc": True}, merge=True))
 
   return {"uid": uid, "kyc": True, "status": "KYC verified"}
 
 
 @app.post("/create-user")
-async def create_user(body: CreateUserBody, request: Request):
+async def create_user(request: Request):
   user = verify_firebase_auth_header(request.headers.get("Authorization"))
   if not user:
     return {"error": "Unauthorized"}
 
-  to_put_data = {
-      "profile_photo": str(body.profile_photo),
-      "phone": body.phone,
-  }
+  to_put_data = {}
 
-  user_data = await _maybe_await(db.collection("users").document(user["uid"]).get())
+  user_data = await _maybe_await(firestore_db.collection("users").document(user["uid"]).get())
   if user_data.exists:
     if not (user_data.to_dict() or {}).get("blockchain_account"):
       account = Account.create()
-      to_put_data["blockchain_account"] = {  # type: ignore
-          "address": account.address,
-          "private_key": account.key.hex(),
-      }
+      uid = user["uid"]
+      await _maybe_await(
+        firestore_db.collection("users").document(uid).set(
+          {
+            "blockchain_account": {
+                "address": account.address,
+                "private_key": account.key.hex()}},
+          merge=True,
+        )
+      )
+      return {"uid": uid, "status": "User created"}
 
-  uid = user["uid"]
-  await _maybe_await(
-    db.collection("users").document(uid).set(
-      to_put_data,
-      merge=True,
-    )
-  )
-
-  return {"uid": uid, "status": "User created"}
+  return {"uid": user["uid"], "status": "User already exists"}
 
 
 @app.post("/generate-id")
@@ -81,7 +79,7 @@ async def generate_id(body: GenerateIDBody, request: Request):
   if not user:
     return {"error": "Unauthorized"}
 
-  user_doc: Any = await _maybe_await(db.collection("users").document(user["uid"]).get())
+  user_doc: Any = await _maybe_await(firestore_db.collection("users").document(user["uid"]).get())
 
   user_doc_data = user_doc.to_dict() or {}
   kyc_status = user_doc_data.get("kyc") or False
@@ -100,7 +98,7 @@ async def generate_id(body: GenerateIDBody, request: Request):
   }
 
   await _maybe_await(
-    db.collection("users").document(user["uid"]).set(
+    firestore_db.collection("users").document(user["uid"]).set(
       {
         "ids": ids
       },
@@ -119,7 +117,7 @@ async def generate_id(body: GenerateIDBody, request: Request):
 async def get_ids(request: Request):
   user = verify_firebase_auth_header(request.headers.get("Authorization"))
 
-  user_doc: Any = await _maybe_await(db.collection("users").document(user["uid"]).get())
+  user_doc: Any = await _maybe_await(firestore_db.collection("users").document(user["uid"]).get())
 
   if not user_doc.exists:
     return {"success": True, "ids": {}}

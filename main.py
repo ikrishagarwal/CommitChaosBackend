@@ -4,6 +4,7 @@ from db.helpers import verify_firebase_auth_header
 from eth_account import Account
 from pydantic import AnyUrl, BaseModel, Field
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 import inspect
 from typing import Any
 from datetime import datetime, timedelta
@@ -25,6 +26,14 @@ except Exception:
 
 
 app = FastAPI()
+
+app.add_middleware(
+  CORSMiddleware,
+  allow_origins=["*"],
+  allow_credentials=False,
+  allow_methods=["*"],
+  allow_headers=["*"],
+)
 
 
 class GPSPoint(BaseModel):

@@ -1,1 +1,5 @@
-fastapi=0.128.0
+fastapi
+web3
+uvicorn
+scikit-learn
+numpy

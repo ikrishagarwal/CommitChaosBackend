@@ -6,7 +6,7 @@ ALCHEMY_URL = "https://eth-sepolia.g.alchemy.com/v2/oo4qeyqxmXeRomGEP9iNc"
 w3 = Web3(Web3.HTTPProvider(ALCHEMY_URL))
 
 if not w3.is_connected():
-    raise Exception("❌ Web3 not connected")
+  raise Exception("❌ Web3 not connected")
 
 print("✅ Connected to Sepolia | Chain ID:", w3.eth.chain_id)
 CONTRACT_ADDRESS = Web3.to_checksum_address(
@@ -45,35 +45,36 @@ SYSTEM_WALLET = account.address
 
 print(" System wallet:", SYSTEM_WALLET)
 
-def register_tourist(firebase_uid: str, validity_days: int = 7):
-    """
-    Registers tourist on blockchain and returns data for QR code
-    """
 
-    kyc_hash = Web3.keccak(text=firebase_uid)
-    expiry_timestamp = int(time.time()) + validity_days * 24 * 60 * 60
+def register_tourist(firebase_uid: str, expiry: int):
+  """
+  Registers tourist on blockchain and returns data for QR code
+  """
 
-    nonce = w3.eth.get_transaction_count(SYSTEM_WALLET)
+  kyc_hash = Web3.keccak(text=firebase_uid)
+  expiry_timestamp = expiry
 
-    tx = contract.functions.register(
-        kyc_hash,
-        expiry_timestamp
-    ).build_transaction({
-        "from": SYSTEM_WALLET,
-        "nonce": nonce,
-        "gas": 200000,
-        "gasPrice": w3.eth.gas_price,
-        "chainId": 11155111
-    })
+  nonce = w3.eth.get_transaction_count(SYSTEM_WALLET, 'pending')
 
-    signed_tx = w3.eth.account.sign_transaction(tx, SYSTEM_PRIVATE_KEY)
-    tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+  tx = contract.functions.register(
+      kyc_hash,
+      expiry_timestamp
+  ).build_transaction({
+      "from": SYSTEM_WALLET,
+      "nonce": nonce,
+      "gas": 200000,
+      "gasPrice": w3.eth.gas_price,
+      "chainId": 11155111
+  })
 
-    w3.eth.wait_for_transaction_receipt(tx_hash)
-    
-    return {
-        "kyc_hash": kyc_hash.hex(),
-        "expires_at": expiry_timestamp,
-        "contract": CONTRACT_ADDRESS,
-        "chain_id": 11155111
-    }
+  signed_tx = w3.eth.account.sign_transaction(tx, SYSTEM_PRIVATE_KEY)
+  tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+
+  w3.eth.wait_for_transaction_receipt(tx_hash)
+
+  return {
+      "kyc_hash": kyc_hash.hex(),
+      "expires_at": expiry_timestamp,
+      "contract": CONTRACT_ADDRESS,
+      "chain_id": 11155111
+  }

@@ -1,3 +1,4 @@
+from blockchain import register_tourist
 from db.firebase import db as firestore_db
 from db.helpers import verify_firebase_auth_header
 from eth_account import Account
@@ -95,16 +96,15 @@ async def generate_id(body: GenerateIDBody, request: Request):
   if not kyc_status:
     return {"error": "KYC not completed"}
 
-  if not user_doc_data.get("blockchain_account"):
-    return {"error": "User does not exist. Please create user first."}
+  # if not user_doc_data.get("blockchain_account"):
+  #   return {"error": "User does not exist. Please create user first."}
 
-  wallet_address = user_doc_data["blockchain_account"]["address"]
+  # wallet_address = user_doc_data["blockchain_account"]["address"]
   user_uid = user["uid"]
   expiry = body.expiry
 
-  # Hit the smart contract and generate a temp ID
-  hash_id = "temp_id_hash_12345"
-  # Assuming i got the id hash here
+  contract = register_tourist(user_uid, expiry)
+  hash_id = contract['contract']
 
   ids = user_doc_data.get("ids") or {}
 

@@ -64,6 +64,23 @@ async def kyc_verification(request: Request):
   return {"uid": uid, "kyc": True, "status": "KYC verified"}
 
 
+@app.get("/kyc-status")
+async def kyc_status(request: Request):
+  user = verify_firebase_auth_header(request.headers.get("Authorization"))
+  if not user:
+    return {"error": "Unauthorized"}
+
+  user_doc: Any = await _maybe_await(firestore_db.collection("users").document(user["uid"]).get())
+
+  if not user_doc.exists:
+    return {"kyc": False}
+
+  data = user_doc.to_dict() or {}
+  kyc_status = data.get("kyc") or False
+
+  return {"kyc": kyc_status}
+
+
 @app.post("/generate-id")
 async def generate_id(body: GenerateIDBody, request: Request):
   user = verify_firebase_auth_header(request.headers.get("Authorization"))
@@ -82,6 +99,8 @@ async def generate_id(body: GenerateIDBody, request: Request):
     return {"error": "User does not exist. Please create user first."}
 
   wallet_address = user_doc_data["blockchain_account"]["address"]
+  user_uid = user["uid"]
+  expiry = body.expiry
 
   # Hit the smart contract and generate a temp ID
   hash_id = "temp_id_hash_12345"

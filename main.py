@@ -38,39 +38,30 @@ async def kyc_verification(request: Request):
   if not user:
     return {"error": "Unauthorized"}
 
-  # print(user)
-
   uid = user["uid"]
   await _maybe_await(firestore_db.collection("users").document(uid).set({"kyc": True}, merge=True))
 
-  return {"uid": uid, "kyc": True, "status": "KYC verified"}
-
-
-@app.post("/create-user")
-async def create_user(request: Request):
-  user = verify_firebase_auth_header(request.headers.get("Authorization"))
-  if not user:
-    return {"error": "Unauthorized"}
-
-  to_put_data = {}
+  to_put_data = {
+    "kyc": True
+  }
 
   user_data = await _maybe_await(firestore_db.collection("users").document(user["uid"]).get())
   if user_data.exists:
     if not (user_data.to_dict() or {}).get("blockchain_account"):
       account = Account.create()
-      uid = user["uid"]
-      await _maybe_await(
-        firestore_db.collection("users").document(uid).set(
-          {
-            "blockchain_account": {
-                "address": account.address,
-                "private_key": account.key.hex()}},
-          merge=True,
-        )
-      )
-      return {"uid": uid, "status": "User created"}
+      to_put_data["blockchain_account"] = {  # type: ignore
+        "address": account.address,
+        "private_key": account.key.hex()
+      }
 
-  return {"uid": user["uid"], "status": "User already exists"}
+  await _maybe_await(
+    firestore_db.collection("users").document(uid).set(
+      to_put_data,
+      merge=True,
+    )
+  )
+
+  return {"uid": uid, "kyc": True, "status": "KYC verified"}
 
 
 @app.post("/generate-id")

@@ -1,1 +1,2 @@
-fastapi=0.128.0
+fastapi==0.128.0
+firebase-admin>=6.5.0

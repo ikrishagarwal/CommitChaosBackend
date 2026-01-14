@@ -39,7 +39,7 @@ ABI = [
 
 contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=ABI)
 
-SYSTEM_PRIVATE_KEY = ""
+SYSTEM_PRIVATE_KEY = "0x2b91b18d638169a58f8deb9922a3e423f44b408371f7d2229483dc8d1f8362bd"
 account = Account.from_key(SYSTEM_PRIVATE_KEY)
 SYSTEM_WALLET = account.address
 

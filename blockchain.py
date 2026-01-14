@@ -10,7 +10,7 @@ if not w3.is_connected():
 
 print("✅ Connected to Sepolia | Chain ID:", w3.eth.chain_id)
 CONTRACT_ADDRESS = Web3.to_checksum_address(
-    "0x5Af1a5DF03fd6Dd1d3D8a54253bf4782c738dDC7"
+    "0xfAe714242c0154ae2ACde4aD7cde90E438AAFd71"
 )
 
 ABI = [
@@ -70,7 +70,7 @@ def register_tourist(firebase_uid: str, expiry: int):
   signed_tx = w3.eth.account.sign_transaction(tx, SYSTEM_PRIVATE_KEY)
   tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
 
-  w3.eth.wait_for_transaction_receipt(tx_hash)
+  w3.eth.wait_for_transaction_receipt(tx_hash, timeout=200)
 
   return {
       "kyc_hash": kyc_hash.hex(),

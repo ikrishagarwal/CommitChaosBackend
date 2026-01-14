@@ -1,4 +1,6 @@
-from email import message
+import inspect
+from typing import Any
+
 from fastapi import FastAPI, Request
 
 import db.firebase  # Ensures Firebase Admin SDK is initialized
@@ -14,20 +16,22 @@ async def read_root():
 
 
 @app.post("/kyc")
-async def kyc_verification(user_id: int, request: Request):
+async def kyc_verification(request: Request):
   user = verify_firebase_auth_header(request.headers.get("Authorization"))
-  print("Verified Firebase user:", user)
+  if not user:
+    return {"error": "Unauthorized"}
 
   uid = user["uid"]
   db.collection("users").document(uid).set({"kyc": True}, merge=True)
 
-  return {"user_id": user_id, "uid": uid, "kyc": True, "status": "KYC verification initiated"}
+  return {"uid": uid, "kyc": True, "status": "KYC verified"}
 
 
 @app.post("/generate-id")
 async def generate_id(request: Request):
   user = verify_firebase_auth_header(request.headers.get("Authorization"))
-  print("Verified Firebase user:", user)
+  if not user:
+    return {"error": "Unauthorized"}
 
   return {
     "message": "In development"
@@ -35,10 +39,18 @@ async def generate_id(request: Request):
 
 
 @app.get("/get-ids")
-async def status_check(request: Request):
+async def get_ids(request: Request):
   user = verify_firebase_auth_header(request.headers.get("Authorization"))
-  print("Verified Firebase user:", user)
 
-  return {
-    "message": "In development"
-  }
+  snapshot_or_awaitable = db.collection("users").document(user["uid"]).get()
+  user_doc: Any = await snapshot_or_awaitable if inspect.isawaitable(snapshot_or_awaitable) else snapshot_or_awaitable
+
+  if not user_doc.exists:
+    return {"success": True, "ids": {}}
+
+  data = user_doc.to_dict() or {}
+  ids = data.get("ids") or {}
+  if not isinstance(ids, dict):
+    ids = {}
+
+  return {"success": True, "ids": ids}

@@ -45,31 +45,35 @@ SYSTEM_WALLET = account.address
 
 print(" System wallet:", SYSTEM_WALLET)
 
-firebase_uid = "i8cYycGyWpcjytAUqcn6a2ucO7S2"
-kyc_hash = Web3.keccak(text=firebase_uid)
+def register_tourist(firebase_uid: str, validity_days: int = 7):
+    """
+    Registers tourist on blockchain and returns data for QR code
+    """
 
-expiry_timestamp = int(time.time()) + 7 * 24 * 60 * 60  # +7 days
+    kyc_hash = Web3.keccak(text=firebase_uid)
+    expiry_timestamp = int(time.time()) + validity_days * 24 * 60 * 60
 
-nonce = w3.eth.get_transaction_count(SYSTEM_WALLET)
+    nonce = w3.eth.get_transaction_count(SYSTEM_WALLET)
 
-tx = contract.functions.register(
-    kyc_hash,
-    expiry_timestamp
-).build_transaction({
-    "from": SYSTEM_WALLET,
-    "nonce": nonce,
-    "gas": 200000,
-    "gasPrice": w3.eth.gas_price,
-    "chainId": 11155111  # Sepolia
-})
+    tx = contract.functions.register(
+        kyc_hash,
+        expiry_timestamp
+    ).build_transaction({
+        "from": SYSTEM_WALLET,
+        "nonce": nonce,
+        "gas": 200000,
+        "gasPrice": w3.eth.gas_price,
+        "chainId": 11155111
+    })
 
-signed_tx = w3.eth.account.sign_transaction(tx, SYSTEM_PRIVATE_KEY)
-tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+    signed_tx = w3.eth.account.sign_transaction(tx, SYSTEM_PRIVATE_KEY)
+    tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
 
-print("⏳ Transaction sent:", tx_hash.hex())
-
-receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-print(" Transaction mined in block:", receipt.blockNumber)
-
-is_valid = contract.functions.isValid(SYSTEM_WALLET).call()
-print(" Tourist valid:", is_valid)
+    w3.eth.wait_for_transaction_receipt(tx_hash)
+    
+    return {
+        "kyc_hash": kyc_hash.hex(),
+        "expires_at": expiry_timestamp,
+        "contract": CONTRACT_ADDRESS,
+        "chain_id": 11155111
+    }

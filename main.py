@@ -138,7 +138,7 @@ async def generate_id(body: GenerateIDBody, request: Request):
   expiry = body.expiry
 
   contract = register_tourist(user_uid, expiry)
-  hash_id = contract['contract']
+  hash_id = contract['tx_hash']
 
   ids = user_doc_data.get("ids") or {}
 
